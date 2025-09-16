@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[left=20mm, right=20mm]{geometry}
+\usepackage{enumitem}
+\usepackage[hyphens]{url}
+\usepackage[super]{cite}
+\usepackage{hyperref}
+\usepackage[dvipsnames, table]{xcolor}
+\usepackage{comment}
+\usepackage{pifont}
+% paquetes para tablas
+\usepackage{ltablex}
+\keepXColumns
+\usepackage{booktabs}
+\usepackage{array}
+% 
+\usepackage{tcolorbox}
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage{amsmath, amssymb}
+\usepackage{enumitem}
+
+% Configuración para url
+\hypersetup{colorlinks=true, urlcolor=RoyalBlue, linkcolor=Red, citecolor=Black}
+\Urlmuskip=0mu plus 1mu
+
+% Configuración para listas enumeradas
+\setlist[enumerate,2]{label=\textit{\alph*)}}
+
+\newcommand{\ltitle}[1]{
+    \begin{flushleft}
+        \Large % large o huge
+        \textbf{#1}
+    \end{flushleft}
+}
+
+\newenvironment{codigo}[2]{% inicio
+  \begin{center}
+  \begin{tcolorbox}[
+    width=#2\textwidth,
+    colback=black!5!white,
+    colframe=black!50,
+    title=#1,
+    left=5pt
+  ]
+  %\scriptsize
+}{% fin
+  \end{tcolorbox}
+  \end{center}
+}
+
+\spanishdecimal{.}
+\setlength{\parskip}{0.5em}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+
+% Definimos un color azul rey
+\definecolor{royalblue}{RGB}{0,35,102}
+
+\begin{document}
+    Some change
+\end{document}
