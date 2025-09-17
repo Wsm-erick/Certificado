@@ -1,0 +1,11 @@
+# Latex (artefactos)
+*.log
+*.synctex.gz
+*.out
+*.aux
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Credenciales
+*.json
