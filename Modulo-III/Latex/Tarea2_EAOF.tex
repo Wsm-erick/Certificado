@@ -153,7 +153,6 @@ def main():
     Session = sessionmaker(bind=engine)
     
     # Carga (Load)
-    
     ventas = []
     for _, row in df.iterrows():
         venta = Venta(
@@ -175,8 +174,10 @@ def main():
         except Exception as e:
             session.rollback()
             print(f"Error en carga: {e}")
+            
     # Ejecución de Consultas con ORM
     with Session() as session:
+    
         # Consulta 1: Todas las ventas
         todas_ventas = session.query(Venta).all()
         print("\nTodas las ventas.")
