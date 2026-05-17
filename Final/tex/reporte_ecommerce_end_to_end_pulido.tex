@@ -1,0 +1,253 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{caption}
+
+\geometry{margin=1in}
+\graphicspath{{img/}}
+\setlist[itemize]{topsep=3pt,itemsep=2pt,parsep=0pt,leftmargin=*}
+\captionsetup{font=small,labelfont=bf}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    filecolor=black,
+    urlcolor=RoyalBlue,
+    pdfborder={0 0 0}
+}
+
+\lstdefinestyle{code}{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!7},
+    rulecolor=\color{gray!40},
+    columns=fullflexible,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1 {ñ}{{\~n}}1 {Ñ}{{\~N}}1
+}
+\lstset{style=code}
+
+
+\newcommand{\screenshot}[3]{%
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=#2\linewidth,height=0.31\textheight,keepaspectratio]{img/#1}%
+    \caption{#3}
+\end{figure}
+}
+
+
+\title{Proyecto Final: Arquitectura de Datos E-commerce en Google Cloud}
+\author{Erick Adrian Orozpe}
+\date{17 de mayo de 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section*{Resumen ejecutivo}
+\addcontentsline{toc}{section}{Resumen ejecutivo}
+Este proyecto implementa una arquitectura de datos end-to-end para e-commerce en Google Cloud Platform. La solución combina ingesta batch hacia Cloud Storage, publicación de eventos streaming con Python y Pub/Sub, procesamiento con Dataflow, almacenamiento analítico en BigQuery, visualización en Looker Studio, entrenamiento con BigQuery ML y despliegue de inferencia online con Vertex AI.
+
+Los recursos principales del proyecto están disponibles en \href{https://github.com/Wsm-erick/Certificado/tree/main/Final}{Repositorio GitHub del proyecto} y en el \href{https://datastudio.google.com/reporting/63d4486c-b05e-4c78-a333-cd320dcde35b}{Dashboard de Looker Studio}.
+
+La estructura del repositorio separa datos, notebooks, consultas SQL, evidencias y recursos del dashboard:
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{0.92\linewidth}{>{\ttfamily}p{0.22\linewidth}X}
+\toprule
+Ruta & Contenido principal \\
+\midrule
+Final/data/ & Dataset CSV usado para la carga batch y la simulación streaming. \\
+Final/notebook/ & Notebooks de publicación a Pub/Sub y prueba del endpoint de Vertex AI. \\
+Final/sql/ & Consultas de creación de tablas, vistas, validaciones y ML.PREDICT. \\
+Final/img/ & Capturas de evidencia usadas en el reporte. \\
+Final/dashboard/ & Recursos o notas asociados al tablero. \\
+Final/.gitignore & Reglas para excluir credenciales y archivos sensibles. \\
+Final/README.md & Guía de navegación y reproducción del proyecto. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Flujo general de arquitectura}
+La arquitectura separa el flujo batch del flujo streaming. El batch conserva el archivo histórico en Cloud Storage y lo estructura en BigQuery. El streaming publica eventos JSON en Pub/Sub; Dataflow consume la suscripción, ejecuta una transformación con UDF JavaScript y escribe una tabla transformada en BigQuery. Desde ahí se alimenta Looker Studio y se ejecutan consultas de validación. Para la parte de ML, BigQuery ML entrena el modelo y Vertex AI lo expone como endpoint online.
+
+
+
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    every node/.style={font=\scriptsize},
+    box/.style={rectangle, rounded corners, draw=MidnightBlue, fill=MidnightBlue!7, thick, align=center, text width=2.05cm, minimum height=0.70cm},
+    proc/.style={rectangle, rounded corners, draw=ForestGreen, fill=ForestGreen!8, thick, align=center, text width=2.05cm, minimum height=0.70cm},
+    store/.style={rectangle, rounded corners, draw=RoyalBlue, fill=RoyalBlue!8, thick, align=center, text width=2.05cm, minimum height=0.70cm},
+    arr/.style={-{Latex[length=2.0mm]}, thick}
+]
+
+% Ruta batch
+\node[box]   (csv)    at (0,2.6)  {CSV hist\'orico};
+\node[store] (gcs)    at (2.7,2.6) {Cloud Storage\\Data lake};
+\node[store] (bqhist) at (5.4,2.6) {BigQuery\\Tabla hist\'orica};
+
+% Ruta streaming
+\node[proc]  (py)     at (0,0.95) {Python Producer\\Eventos JSON};
+\node[box]   (ps)     at (2.7,0.95) {Pub/Sub\\Topic};
+\node[proc]  (df)     at (5.4,0.95) {Dataflow\\UDF JavaScript};
+\node[store] (bqst)   at (8.1,0.95) {BigQuery\\Tabla transformada};
+
+% Consumo anal\'itico y ML
+\node[box]   (looker) at (10.8,1.9) {Looker Studio\\Dashboard};
+\node[proc]  (bqml)   at (8.1,-0.8) {BigQuery ML\\Modelo};
+\node[proc]  (vertex) at (10.8,-0.8) {Vertex AI\\Endpoint};
+
+\draw[arr] (csv) -- (gcs);
+\draw[arr] (gcs) -- (bqhist);
+\draw[arr] (bqhist) -- (looker);
+\draw[arr] (py) -- (ps);
+\draw[arr] (ps) -- (df);
+\draw[arr] (df) -- (bqst);
+\draw[arr] (bqst) -- (looker);
+\draw[arr] (bqst) -- (bqml);
+\draw[arr] (bqml) -- (vertex);
+
+\node[font=\scriptsize\bfseries, text=MidnightBlue] at (0,3.35) {Batch};
+\node[font=\scriptsize\bfseries, text=ForestGreen] at (0,1.65) {Streaming};
+\node[font=\scriptsize\bfseries, text=ForestGreen] at (8.1,-1.45) {ML};
+
+\end{tikzpicture}%
+}
+\caption{Flujo general del proyecto: ingesta batch, streaming, transformación, analítica, visualización e inferencia online.}
+\end{figure}
+
+
+
+
+\section{Pipeline de configuración}
+Esta sección documenta los recursos base que habilitan el pipeline: bucket de Cloud Storage, job de Dataflow y modelo de ML.
+
+\subsection{Cloud Storage como zona batch y artefactos}
+Se creó el bucket \texttt{ecommerce-data-lake-erick} en \texttt{us-central1}. Este bucket sirve para conservar el dataset histórico y almacenar artefactos auxiliares, como la UDF JavaScript usada por Dataflow.
+
+\screenshot{26_gcs_buckets_overview.png}{0.90}{Bucket de Cloud Storage usado como data lake y zona de artefactos del proyecto.}
+
+\subsection{Dataflow streaming con UDF}
+La configuración de Dataflow usa la plantilla Pub/Sub to BigQuery. La parte no obvia es que Dataflow no genera datos: consume mensajes de una suscripción de Pub/Sub. Para demostrar transformación real, se agregó una UDF JavaScript en Cloud Storage que calcula campos derivados antes de escribir en BigQuery.
+
+\screenshot{30_dataflow_udf_transform_job_running.png}{0.90}{Job de Dataflow en ejecución con UDF JavaScript, procesando mensajes desde Pub/Sub hacia BigQuery.}
+
+\subsection{Modelo BigQuery ML}
+El modelo \texttt{return\_prediction\_model} se entrenó con BigQuery ML para predecir devoluciones. Las columnas de entrada validadas en el modelo fueron \texttt{Quantity}, \texttt{UnitPrice} y \texttt{Country}. Esta restricción fue importante al invocar el endpoint de Vertex AI: cualquier campo adicional no esperado, como \texttt{CustomerID}, provoca error de esquema.
+
+\screenshot{05_bqml_model_evaluation_metrics.png}{0.90}{Evaluación del modelo BigQuery ML con métricas interpretables para validar el entrenamiento.}
+
+\section{Pipeline de ingesta y transformación}
+
+\subsection{Publicación de eventos streaming}
+El productor en Python lee el CSV local y publica eventos JSON hacia el tópico \texttt{ecommerce-topic}. Para la simulación se publicaron lotes pequeños y una muestra mayor de 10,000 eventos. El script inyecta fechas de evento para que la serie temporal en Looker Studio pueda mostrar variación por hora.
+
+\screenshot{22_python_publish_10000_events_output.png}{0.82}{Publicación de 10,000 eventos desde Python hacia Pub/Sub para alimentar el pipeline streaming.}
+
+\subsection{Función JavaScript de transformación}
+La UDF se guardó en Cloud Storage y se conectó al job de Dataflow usando la ruta del archivo JavaScript almacenado en el bucket del proyecto:
+
+\begin{center}
+\small\texttt{gs://ecommerce-data-lake-erick/udf/transform\_ecommerce.js}
+\end{center}
+
+Esta función agrega campos calculados que no venían en el JSON original.
+
+\begin{lstlisting}[caption={Transformacion principal aplicada por la UDF.}]
+function transform(inJson) {
+  var obj = JSON.parse(inJson);
+  var quantity = Number(obj.Quantity || 0);
+  var unitPrice = Number(obj.UnitPrice || 0);
+  var totalAmount = quantity * unitPrice;
+
+  obj.Quantity = quantity;
+  obj.UnitPrice = unitPrice;
+  obj.TotalAmount = totalAmount;
+  obj.Source = "pubsub_dataflow_udf";
+  obj.IsHighValue = totalAmount >= 100;
+  obj.InvoiceTimestamp = obj.InvoiceDate;
+  obj.InvoiceHour = obj.InvoiceDate.substring(0, 13) + ":00:00";
+
+  return JSON.stringify(obj);
+}
+\end{lstlisting}
+
+\screenshot{31_gcs_udf_file_uploaded.png}{0.90}{Archivo JavaScript de transformación cargado en Cloud Storage para ser consumido por Dataflow.}
+
+\subsection{BigQuery transformado}
+La tabla \texttt{streaming\_sales\_transformed} confirma la transformación al vuelo. Los campos agregados por la UDF son \texttt{InvoiceTimestamp}, \texttt{InvoiceHour}, \texttt{TotalAmount}, \texttt{Source} e \texttt{IsHighValue}.
+
+\screenshot{29_bigquery_transformed_table_rows.png}{0.90}{Tabla transformada en BigQuery con columnas derivadas creadas por la UDF de Dataflow.}
+
+\section{Visualización en Looker Studio}
+El dashboard se conectó a BigQuery para mostrar KPIs, tabla de eventos recientes, ventas por país y serie temporal. Un ajuste relevante fue crear o exponer \texttt{InvoiceHour}; sin ese campo, Looker agrupaba los eventos como un solo día y la serie temporal no era representativa.
+
+\screenshot{24_looker_streaming_dashboard.png}{0.90}{Dashboard de Looker Studio conectado a BigQuery, con KPIs, tabla de eventos y visualizaciones por país y hora.}
+
+\section{BigQuery ML y Vertex AI}
+
+\subsection{Inferencia batch con BigQuery ML}
+\texttt{ML.PREDICT} se usó para validar inferencia dentro de BigQuery. Esta operación no modifica ni sobrescribe el modelo: únicamente aplica el modelo entrenado sobre un conjunto de entrada.
+
+\screenshot{25_bqml_predict_streaming_results.png}{0.90}{Resultado de \texttt{ML.PREDICT} sobre registros recientes de la tabla streaming.}
+
+\subsection{Registro y endpoint en Vertex AI}
+El modelo entrenado en BigQuery ML se registró en Vertex AI Model Registry como \texttt{return-prediction-bqml}. Después se implementó en el endpoint \texttt{return-prediction-endpoint-v2}, habilitando inferencia online por API.
+
+\screenshot{36_vertex_endpoint_active_model_1.png}{0.90}{Endpoint de Vertex AI activo con un modelo implementado.}
+
+\subsection{Prueba de inferencia online}
+La prueba se hizo desde Python usando el SDK de Vertex AI. La solicitud incluyó únicamente las columnas esperadas por el modelo: \texttt{Quantity}, \texttt{UnitPrice} y \texttt{Country}.
+
+\begin{lstlisting}[caption={Solicitud minima al endpoint de Vertex AI.}]
+instances = [
+    {
+        "Quantity": 1,
+        "UnitPrice": 9.99,
+        "Country": "Germany"
+    }
+]
+
+prediction = endpoint.predict(instances=instances)
+print(prediction)
+\end{lstlisting}
+
+\screenshot{33_vertex_ai_endpoint_prediction_output.png}{0.86}{Salida de inferencia online desde Python contra el endpoint de Vertex AI.}
+
+\section{FinOps y limpieza}
+Al finalizar las pruebas, se apagaron recursos para evitar costos. En Dataflow se cancelaron los jobs de streaming. En Vertex AI se anuló la implementación del modelo: la evidencia clave es que el endpoint quedó con \texttt{Modelos = 0}.
+
+\screenshot{35_vertex_model_implemented_evidence.png}{0.86}{Secuencia FinOps 1: modelo implementado en Vertex AI durante la prueba de inferencia.}
+\screenshot{36_vertex_endpoint_active_model_1.png}{0.86}{Secuencia FinOps 2: endpoint activo con un modelo desplegado antes de la limpieza.}
+\screenshot{38_finops_vertex_endpoint_cleaned.png}{0.86}{Secuencia FinOps 3: endpoint sin modelos implementados, evidenciando la limpieza del recurso de inferencia.}
+\screenshot{34_finops_dataflow_jobs_cancelled.png}{0.86}{Jobs de Dataflow cancelados como parte de la limpieza del ambiente.}
+
+\section{Conclusiones}
+La implementación cubre el flujo completo solicitado: ingesta batch, ingesta streaming, transformación con Dataflow, almacenamiento en BigQuery, visualización en Looker Studio, entrenamiento con BigQuery ML e inferencia online con Vertex AI. Los pasos no obvios más importantes fueron: usar una UDF para que Dataflow transformara realmente los eventos, crear campos temporales para que el dashboard mostrara una serie por hora, enviar al endpoint solo las columnas esperadas por el modelo y limpiar recursos activos para FinOps.
+
+\end{document}
