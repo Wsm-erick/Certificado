@@ -19,3 +19,8 @@ __pycache__/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# R / historial local
+.Rhistory
+.RData
+.Rproj.user/
